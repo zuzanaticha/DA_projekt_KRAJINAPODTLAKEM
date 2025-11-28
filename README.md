@@ -1,7 +1,7 @@
 # Krajina pod tlakem:
 ## Mapování chráněných oblastí, památných stromů a zdrojů znečištění
 
-⦁ [odkaz](https://medium.com/@krajinapodtlakem/krajina-pod-tlakem-mapování-chráněných-oblastí-památných-stromů-a-zdrojů-znečištění-3851a2866017)na článek
+⦁ [odkaz](https://medium.com/@krajinapodtlakem/krajina-pod-tlakem-mapování-chráněných-oblastí-památných-stromů-a-zdrojů-znečištění-3851a2866017) na článek
 
 *Jak velkou plochu zaujímají v České republice chráněná území? Jak si stojíme oproti ostatním zemím Evropské unie? Kolik máme v Čechách památných stromů? A jak významný je tlak znečišťovatelů, který na naše přírodní bohatství doléhá? Cílem projektu je chráněné oblasti a stromy mapovat, ale také poukazovat na jejich křehkost.*
 
