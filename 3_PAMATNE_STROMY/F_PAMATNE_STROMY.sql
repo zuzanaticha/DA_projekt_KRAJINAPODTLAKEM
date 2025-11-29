@@ -291,3 +291,259 @@ SET
     , PUVOD_SOURADNIC                   = UPPER(TRIM(PUVOD_SOURADNIC))
     , ID_WEB                            = TRIM(ID_WEB)
 ;
+
+----------------------------
+-- EXPLORACE & ČIŠTĚNÍ
+----------------------------
+
+-- ENTITA STROMY_DATABAZE VS. ENTITA STROMY_CENTROID
+----------------------------------------------------------------------------------------------------------------
+
+-- 5483
+SELECT *
+FROM STROMY_CENTROID
+
+-- 5483
+SELECT DISTINCT KOD
+FROM STROMY_CENTROID
+
+-- 5501
+SELECT *
+FROM STROMY_DATABAZE
+
+-- 5501
+SELECT "Kod"
+FROM STROMY_DATABAZE
+
+-- 21 (20) = jsou ve STROMY_DATABAZE, ale nejsou ve STROMY_CENTROID
+SELECT D.*
+FROM STROMY_DATABAZE AS D
+LEFT JOIN STROMY_CENTROID AS C
+  ON C."KOD" = D."Kod"
+WHERE C."KOD" IS NULL;
+
+-- 3 = jsou ve STROMY_CENTROID, ale nejsou ve STROMY_DATABAZE
+SELECT C.*
+FROM STROMY_CENTROID AS C
+LEFT JOIN STROMY_DATABAZE AS D
+  ON D."Kod" = C."KOD"
+WHERE D."Kod" IS NULL;
+
+-- SOUŘADNICE
+----------------------------------------------------------------------------------------------------------------
+
+-- 1684 = počet záznamů s '{X:, Y:} ' ve sloupci "Souradnice" (POČET ZÁZNAMŮ S NEVYPLNĚNÝMI SOUŘADNICEMI MUSÍ SEDĚT S POČTEM NEVYPLNĚNÝCH SOUŘADNIC PO TRANSFORMACI)
+SELECT *
+FROM STROMY_DATABAZE
+WHERE "Souradnice" = '{X:, Y:} '
+;
+
+-- 1684 = z '{X:, Y:} ' se nestalo NULL, ale stalo se z toho 'inf' - Python nechápal NULL hodnotu a dostadil inf (v transformaci replace za NULL)
+SELECT *
+FROM STROMY_WGS84
+WHERE "lat" = 'inf';
+
+-- také 1684
+SELECT *
+FROM STROMY_WGS84
+WHERE "long" = 'inf';
+
+-- 1684 = jde o stejné záznamy => POČET ZÁZNAMŮ BEZ SOUŘADNIC SEDÍ
+SELECT *
+FROM STROMY_WGS84
+WHERE "lat" = 'inf' AND "long" = 'inf';
+
+-- 0 = prázdný string v lat
+SELECT *
+FROM STROMY_WGS84
+WHERE "lat" = '';
+
+-- 0
+SELECT *
+FROM STROMY_WGS84
+WHERE "long" = '';
+
+-- 0
+SELECT *
+FROM STROMY_WGS84
+WHERE "lat" = '' AND "long" = '';
+
+-- 0 = NULL v lat
+SELECT *
+FROM STROMY_WGS84
+WHERE "lat" IS NULL;
+
+-- 0
+SELECT *
+FROM STROMY_WGS84
+WHERE "long" IS NULL;
+
+-- 0
+SELECT *
+FROM STROMY_WGS84
+WHERE "lat" IS NULL AND "long" IS NULL;
+
+-- ZÁZNAMY O SPRÁVĚ:
+----------------------------------------------------------------------------------------------------------------
+
+-- KRAJ:
+
+-- 0 ZÁZNAMŮ S NULL NEBO ''
+SELECT *
+FROM STROMY_WGS84
+WHERE KRAJ IS NULL OR KRAJ = '';
+
+-- 14 UNIKÁTNÍCH KRAJŮ
+SELECT DISTINCT KRAJ
+FROM STROMY_WGS84;
+
+-- OKRESY = NEAKTUÁLNÍ OD R. 2003, IRELEVANTNÍ
+
+-- 0 ZÁZNAMŮ S NULL NEBO ''
+SELECT *
+FROM STROMY_WGS84
+WHERE OKRES IS NULL OR OKRES = '';
+
+-- 77 = UNIKÁTNÍCH OKRESŮ
+SELECT DISTINCT OKRES
+FROM STROMY_WGS84;
+
+-- OBEC_S_ROZSIRENOU_PUSOBNOSTI
+
+-- 0 ZÁZNAMŮ S NULL NEBO ''
+SELECT *
+FROM STROMY_WGS84
+WHERE OBEC_S_ROZSIRENOU_PUSOBNOSTI IS NULL OR OBEC_S_ROZSIRENOU_PUSOBNOSTI = '';
+
+-- 205 = UNIKÁTNÍCH OBCÍ S ROZŠÍŘENOU PŮSOBNOSTÍ
+SELECT DISTINCT OBEC_S_ROZSIRENOU_PUSOBNOSTI
+FROM STROMY_WGS84
+ORDER BY OBEC_S_ROZSIRENOU_PUSOBNOSTI;
+
+-- ORGAN_OCHRANY_PRIRODY
+----------------------------------------------------------------------------------------------------------------
+
+-- 0 ZÁZNAMŮ S NULL NEBO ''
+SELECT *
+FROM STROMY_WGS84
+WHERE ORGAN_OCHRANY_PRIRODY IS NULL OR ORGAN_OCHRANY_PRIRODY = '';
+
+-- 233 = UNIKÁTNÍCH ORGÁNŮ OCHRANY PŘÍRODY
+-- VYPADÁ TO NA PÁD DUPLICIT:
+    -- AOPK ČR - RP STŘEDNÍ ČECHY
+    -- AOPK ČR - RP STŘEDNÍ ČECHY, MÚ RAKOVNÍK
+    -- MÚ RAKOVNÍK
+-- ALE NEBUDU ČISTIT, PROTOŽE JE MOŽNÉ, ŽE JE ČLENĚNÍ ZÁMĚRNĚ TAKTO ORGANIZOVANÉ
+SELECT DISTINCT ORGAN_OCHRANY_PRIRODY
+FROM STROMY_WGS84
+ORDER BY ORGAN_OCHRANY_PRIRODY;
+
+-- PRÁCE S TABULKAMI OBCE_GPS a OBCE_STROMY
+----------------------------------------------------------------------------------------------------------------
+
+-- 205 = u všech záznamů z obce_stromy jsou gps
+SELECT S.OBEC_S_ROZSIRENOU_PUSOBNOSTI
+    , S.OBEC
+    , S.OKRES
+    , S.KRAJ
+    , G.LAT_OBEC
+    , G.LONG_OBEC
+FROM OBCE_STROMY AS S
+INNER JOIN OBCE_GPS AS G ON 
+    S.STROMY_KEY = G.GPS_KEY
+;
+
+-- 0 = u všech záznamů z obce_stromy jsou gps
+SELECT S.STROMY_KEY
+FROM OBCE_STROMY S
+LEFT JOIN OBCE_GPS G ON S.STROMY_KEY = G.GPS_KEY
+WHERE G.GPS_KEY IS NULL;
+
+-- ZPRACOVÁNÍ TABULKY "stromy_taxony_FULL"
+----------------------------------------------------------------------------------------------------------------
+
+UPDATE "stromy_taxony_FULL"
+SET
+      "kod"            = UPPER(TRIM("kod"))
+    , "id"             = UPPER(TRIM("id"))
+    , "nazev"          = UPPER(TRIM("nazev"))
+    , "taxon_cz"       = UPPER(TRIM("taxon_cz"))
+    , "taxon_lat"      = UPPER(TRIM("taxon_lat"))
+    , "taxon_cnt"      = UPPER(TRIM("taxon_cnt"))
+    , "taxon_cnt_sum"  = UPPER(TRIM("taxon_cnt_sum"))
+    , "pocet_skutecny" = UPPER(TRIM("pocet_skutecny"))
+    , "taxon_confirmed"= UPPER(TRIM("taxon_confirmed"))
+    , "taxon_warning"  = UPPER(TRIM("taxon_warning"))
+;
+
+-- 11 záznamů, kde nemám taxon (ani v cz ani v lat)
+SELECT * from "stromy_taxony_FULL"
+where "taxon_cz" = '' and "taxon_lat" = ''
+
+-- V TABULCE TAXONŮ NASTAVUJU PRÁZDNÝ STRING V TAXON_CZ A TAXON_LAT NA 'NEZNÁMÝ' ---- dávám do transformace
+UPDATE "stromy_taxony_FULL"
+SET
+    "taxon_cz" = 'NEZNÁMÝ',
+    "taxon_lat" = 'NEZNÁMÝ'
+WHERE "taxon_cz" = '' OR "taxon_lat" = ''
+;
+
+-- 6 077 = záznamy, kde je více taxonů v jednom řádku, rozděluju na více řádků se stejným kódem ---- dávám do transformace
+CREATE TABLE TAXONY_CLEAN AS
+SELECT 
+      "kod" AS KOD
+    , "id" AS ID_WEB
+    , "nazev" AS NAZEV
+    , TRIM(cz.value) AS TAXON_CZ
+    , TRIM(lat.value) AS TAXON_LAT
+    , TRIM(cnt.value) AS TAXON_CNT
+    , "taxon_cnt_sum" AS TAXON_CNT_SUM
+    , "pocet_skutecny" AS POCET_SKUTECNY
+    , "taxon_confirmed" AS POCET_CONFIRMED
+    , "taxon_warning" AS TAXON_WARNING
+FROM "stromy_taxony_FULL"
+    , LATERAL FLATTEN(
+        INPUT => SPLIT("taxon_cz", ';')
+      ) cz
+    , LATERAL FLATTEN(
+        INPUT => SPLIT("taxon_lat", ';')
+      ) lat
+    , LATERAL FLATTEN(
+        INPUT => SPLIT("taxon_cnt", ';')
+      ) cnt
+WHERE cz.index = lat.index AND cz.index = cnt.index
+;
+
+-- Z TOHOTO SE DOZVÍDÁM, ŽE PŘEHLEDNÝ FILTR NA ZÁKLADĚ TAXONU NENÍ MOŽNÝ - JE TO PŘÍŠLIŠ NEKONZISTENTNÍ.
+
+SELECT DISTINCT TAXON_CZ
+    , COUNT(*) AS POCET_ZAZNAMU
+FROM TAXONY_CLEAN
+GROUP BY TAXON_CZ
+ORDER BY TAXON_CZ
+;
+
+-- 1898 ZÁZNAMŮ Z 6077, KDE JE V LAT_WGS84_STROM NULL
+SELECT *
+FROM PAMATNE_STROMY_CLEAN
+WHERE LAT_WGS84_STROM IS NULL AND LONG_WGS84_STROM IS NULL
+;
+
+-- 1684 = CHYBÍ SOUŘADNICE
+SELECT DISTINCT KOD
+FROM PAMATNE_STROMY_CLEAN
+WHERE LAT_WGS84_STROM IS NULL AND LONG_WGS84_STROM IS NULL
+;
+
+-- 15386 = STROMY SE SOUŘADNICEMI
+-- 9183 = STROMY BEZ SOUŘADNIC
+-- 24569 = VŠECHNY STROMY - S I BEZ SOUŘADNIC
+
+-- GROUP BY PO TAXONECH
+SELECT DISTINCT TAXON_CZ
+    , COUNT(*) POCET_ZAZNAMU
+FROM PAMATNE_STROMY_CLEAN
+WHERE TAXON_CZ ILIKE '%LÍPA%'
+GROUP BY TAXON_CZ
+ORDER BY POCET_ZAZNAMU DESC
+;
